@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include<sys/stat.h>
 
-// Header do arquivo de Dados: Id,Country,City,AccentCity,Region,Population,Latitude,Longitude
-
 struct dados{
     int idRegistro;
     char country[4];
@@ -37,6 +35,18 @@ int verificarArquivoExiste (char filename[]){
         return 1;
     else
         return 0;
+}
+
+void printarNaTelaDados(DADOS dado){
+    printf("Dados:\n");
+    printf("Id: %d\n", dado.idRegistro);
+    printf("Country: %s\n",dado.country);
+    printf("City: %s\n",dado.city);
+    printf("AccentCity: %s\n",dado.accentCity);
+    printf("Region: %s\n",dado.region);
+    printf("Population: %f\n",dado.population);
+    printf("Latitude: %f\n",dado.latitude);
+    printf("Longitude: %f\n",dado.longitude);
 }
 
 void CriarArquivoBinarioDados(){
@@ -110,7 +120,7 @@ void CriarArquivoBinarioDados(){
 long tamanhoArquivo(FILE *fp){
 
     if (fp == NULL) {
-        printf("Arquivo n„o encontrado!\n");
+        printf("Arquivo nao encontrado!\n");
         return -1;
     }
 
@@ -122,13 +132,6 @@ long tamanhoArquivo(FILE *fp){
 }
 
 void pesquisaBinaria(int chave){
-
-    int ret = verificarArquivoExiste("dadosBinario.bin");
-
-    printf("%d\n",ret);
-    if (ret == 0){
-        CriarArquivoBinarioDados();
-    }
 
     FILE *arqBin;
     int retorno = 0;
@@ -169,6 +172,7 @@ void pesquisaBinaria(int chave){
 
     if (retorno == 1){
         printf("valor econtrado\n");
+        printarNaTelaDados(dado);
     }else{
         printf("valor nao econtrado\n");
     }
@@ -242,7 +246,7 @@ void criarIndiceChave1(){
         fwrite(&indice,sizeof(IND1),1,arqBin);
     }
 
-    printf("Finalizado a escrita dos indices chave 1...\n");
+    printf("Finalizado a escrita dos indices chave 1... \n");
 
     fclose(arqBin);
     fclose(arqText);
@@ -258,19 +262,9 @@ void buscarIndiceChave1(int chave){
     arqBin = fopen("indice_chave1.bin", "rb");
 
     if (arqBin == NULL){
-        printf ("Falha ao abrir o arquivo de Binario de Õndices \n");
+        printf ("Falha ao abrir o arquivo de Binario de indices \n");
         return 0;
     }
-
-    /*
-    while (!feof(arqBin))
-    {
-        fread(&indice, sizeof(IND1),1, arqBin);
-        printf("%d %d \n", indice.chave, indice.endereco);
-
-        //fseek(arqBin,10 * sizeof(indice), SEEK_SET);
-    }
-    */
 
     int inicio = 0;
     int meio = 0;
@@ -301,15 +295,15 @@ void buscarIndiceChave1(int chave){
     fclose(arqBin);
 
     if (retorno == 1){
-        printf("Indice econtrado\n");
-        printf("Valor achado: %d %d\n",indice.chave, indice.endereco);
-
+        
         DADOS dado;
 
         arqBin = fopen("dadosBinario.bin", "rb");
 
+        printf("Indice econtrado\n");
+
         if (arqBin == NULL){
-            printf ("Falha ao abrir o arquivo de Binario Texto\n");
+            printf ("Falha ao abrir o arquivo de dados binario\n");
             return 0;
         }
 
@@ -317,10 +311,9 @@ void buscarIndiceChave1(int chave){
 
         fread(&dado,sizeof(DADOS),1,arqBin);
 
-        printf("%d: %s\n", dado.idRegistro, dado.accentCity);
+        printarNaTelaDados(dado);
 
         fclose(arqBin);
-
 
     }else{
         printf("Indice nao econtrado\n");
@@ -360,13 +353,11 @@ void criarIndiceChave2(){
     {
         fread(&dado, sizeof(DADOS),1, arqBin);
 
-        strcpy(indices[cont].chave, "abcd");
-        printf("%d\n", cont);
         indices[cont].endereco = cont;
         cont++;
     }
 
-    printf("Finalizado a escrita dos indices chave 2...\n");
+    printf("Finalizando a escrita dos indices chave 2...\n");
 
     fclose(arqBin);
     fclose(arqIndice);
@@ -374,15 +365,24 @@ void criarIndiceChave2(){
     return 1;
 }
 
+/*
+    Header do arquivo de Dados: Id,Country,City,AccentCity,Region,Population,Latitude,Longitude
+    Chave 1: Id
+    Chave 2: 
+    Chave 3:
+    Chave 4:
+*/
+
 void opcoesInterface(){
     printf("--------------------------------------------------\n");
     printf("Digite a opcao desejada: \n");
     printf("0.Sair do programa\n");
     printf("1.Ler exaustivamente o arquivo de dados\n");
-    printf("2.Pesquisar id do registro via Pesquisa Bin·ria\n");
-    printf("3.Criar indice chave 1\n");
-    printf("4.Pesquisar id do registro via Pesquisa Bin·ria na Chave 1\n");
-    printf("5. Criar indice chave 2\n");
+    printf("2.Criar arquivo binario de dados para fazer as consultas e criacoes\n");
+    printf("3.Pesquisar id do registro via Pesquisa Binaria\n");
+    printf("4.Criar arquivo de indice(chave 1) na memoria\n");
+    printf("5.Pesquisar id do registro via Pesquisa Binaria na Chave 1\n");
+    printf("6. Criar arquivo de indice(chave 2) na memoria\n");
     printf("--------------------------------------------------\n");
 }
 
@@ -401,25 +401,47 @@ void main(){
             lerExaustivamenteArquivoDados();
             printf("finalizando ....\n ");
         break;
-        //--------
         case 2:
+        if (verificarArquivoExiste("dadosBinario.bin") == 0){
+            CriarArquivoBinarioDados();
+        }else{
+            printf("Arquivo binario de dados ja criado\n");
+        }
+        break;
+        case 3:
+        if (verificarArquivoExiste("dadosBinario.bin") == 0){
+            printf("Arquivo de dados binario nao criado, para continuar crio-o\n");
+        }else{
             printf("Digite o id para buscar: \n");
             scanf("%d",&chavePesquisa);
             pesquisaBinaria(chavePesquisa);
-        break;
-        case 3:
-            criarIndiceChave1();
+        }
         break;
         case 4:
-            printf("Digite a chave para pesquisar no Ìndice:\n");
-            scanf("%d",&chavePesquisa);
-            buscarIndiceChave1(chavePesquisa);
+        if (verificarArquivoExiste("indice_chave1.bin") == 0){
+            criarIndiceChave1();
+        }else{
+            printf("Arquivo de indice(chave 1) j√° criado\n");
+        } 
         break;
         case 5:
+        if (verificarArquivoExiste("indice_chave1.bin") == 0){
+            printf("Arquivo de indice 1 nao encontrado. Para buscar, crie-o\n");
+         }else{
+            printf("Digite a chave para pesquisar no indice:\n");
+            scanf("%d",&chavePesquisa);
+            buscarIndiceChave1(chavePesquisa);
+         }
+        break;
+        case 6:
+        if (verificarArquivoExiste("indice_chave2.bin") == 0){
             criarIndiceChave2();
+        }else{
+            printf("Arquivo de indice(chave 2) j√° criado\n");
+        } 
         break;
         default:
-            printf("OpÁ„o n„o encontrada, tente novamente ...\n");
+            printf("Opcao nao encontrada, tente novamente ...\n");
         break;
     }
 
