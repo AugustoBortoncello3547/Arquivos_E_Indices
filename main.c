@@ -1,8 +1,11 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
 #include<sys/stat.h>
 
 struct dados{
     int idRegistro;
+    char idAlfaNumerico[5];
     char country[4];
     char city[25];
     char accentCity[25];
@@ -23,7 +26,7 @@ struct indice_chave1{
 typedef struct indice_chave1 IND1;
 
 struct indice_chave2{
-    char chave[4];
+    char chave[5];
     int endereco;
 };
 typedef struct indice_chave2 IND2;
@@ -40,6 +43,7 @@ int verificarArquivoExiste (char filename[]){
 void printarNaTelaDados(DADOS dado){
     printf("Dados:\n");
     printf("Id: %d\n", dado.idRegistro);
+    printf("Id2: %s\n",dado.idAlfaNumerico);
     printf("Country: %s\n",dado.country);
     printf("City: %s\n",dado.city);
     printf("AccentCity: %s\n",dado.accentCity);
@@ -47,6 +51,14 @@ void printarNaTelaDados(DADOS dado){
     printf("Population: %f\n",dado.population);
     printf("Latitude: %f\n",dado.latitude);
     printf("Longitude: %f\n",dado.longitude);
+}
+
+void parseMaiusculo(char string[]){
+    int i = 0;
+    while(string[i] != '\0'){
+        string[i] = toupper(string[i]);
+        i++;
+    }
 }
 
 void CriarArquivoBinarioDados(){
@@ -71,6 +83,7 @@ void CriarArquivoBinarioDados(){
 
     DADOS dado;
     int idRegistro;
+    char idAlfaNumerico[5];
     char country[4];
     char city[25];
     char accentCity[25];
@@ -81,10 +94,11 @@ void CriarArquivoBinarioDados(){
 
     printf("Escrevendo o arquivo binario de dados...\n");
 
-    while (fscanf(arqText,"%d,%[^,],%[^,],%[^,],%[^,],%f,%f,%f\n",&idRegistro,country,city,accentCity,region,&population,&latitude,&longitude) != EOF){
+    while (fscanf(arqText,"%d,%[^,],%[^,],%[^,],%[^,],%[^,],%f,%f,%f\n",&idRegistro,idAlfaNumerico,country,city,accentCity,region,&population,&latitude,&longitude) != EOF){
 
         printf("%d\n",idRegistro);
         /*
+        printf("%s\n",idAlfaNumerico);
         printf("%s\n",country);
         printf("%s\n",city);
         printf("%s\n",accentCity);
@@ -96,6 +110,7 @@ void CriarArquivoBinarioDados(){
         */
 
         dado.idRegistro = idRegistro;
+        strcpy(dado.idAlfaNumerico,idAlfaNumerico);
         strcpy(dado.country,country);
         strcpy(dado.city,city);
         strcpy(dado.accentCity,accentCity);
@@ -140,7 +155,7 @@ void pesquisaBinaria(int chave){
     arqBin = fopen("dadosBinario.bin", "rb");
 
     if (arqBin == NULL){
-        printf ("Falha ao abrir o arquivo de Binario Texto\n");
+        printf ("Falha ao abrir o arquivo Binario de dados\n");
         return 0;
     }
     int inicio = 0;
@@ -204,7 +219,6 @@ void lerExaustivamenteArquivoDados(){
 void criarIndiceChave1(){
 
     FILE *arqText;
-    char linha[200];
 
     arqText = fopen("data.csv","rt");
     if (arqText == NULL){
@@ -214,6 +228,7 @@ void criarIndiceChave1(){
 
     IND1 indice;
     int idRegistro;
+    char idAlfaNumerico[5];
     char country[4];
     char city[25];
     char accentCity[25];
@@ -236,9 +251,8 @@ void criarIndiceChave1(){
 
     int cont = 0;
 
-    while (fscanf(arqText,"%d,%[^,],%[^,],%[^,],%[^,],%f,%f,%f\n",&idRegistro,country,city,accentCity,region,&population,&latitude,&longitude) != EOF){
-        //printf("%d, %d \n", idRegistro, cont);
-
+    while (fscanf(arqText,"%d,%[^,],%[^,],%[^,],%[^,],%[^,],%f,%f,%f\n",&idRegistro,idAlfaNumerico,country,city,accentCity,region,&population,&latitude,&longitude) != EOF){
+        
         indice.chave = idRegistro;
         indice.endereco = cont;
         cont++;
@@ -268,7 +282,7 @@ void buscarIndiceChave1(int chave){
 
     int inicio = 0;
     int meio = 0;
-    long fim = (tamanhoArquivo(arqBin)/sizeof(indice))-1;
+    long fim = (tamanhoArquivo(arqBin)/sizeof(IND1))-1;
     int retorno;
 
     while(inicio <= fim){
@@ -323,52 +337,125 @@ void buscarIndiceChave1(int chave){
 
 void criarIndiceChave2(){
 
-    FILE *arqBin, *arqIndice;
+    FILE *arqText;
 
-    arqBin = fopen("dadosBinario.bin","rb");
-    if (arqBin == NULL){
-        printf ("Falha ao abrir o arquivo de dados binario\n");
+    arqText = fopen("data.csv","rt");
+    if (arqText == NULL){
+        printf ("Falha ao abrir o arquivo de dados Texto\n");
         return 0;
     }
 
-    qtdeArquivoBinarioDados = tamanhoArquivo(arqBin)/sizeof(DADOS);
-    fseek(arqBin, 0 , SEEK_SET);
-
-    arqIndice = fopen("indice_chave2.bin", "wb");
-
-    if (arqIndice == NULL){
-        printf ("Falha ao abrir o arquivo de Binario indice\n");
-        return 0;
-    }
-
-    DADOS dado;
-    IND2 indices[qtdeArquivoBinarioDados];
     IND2 indice;
+    int idRegistro;
+    char idAlfaNumerico[5];
+    char country[4];
+    char city[25];
+    char accentCity[25];
+    char region[4];
+    float population;
+    float latitude;
+    float longitude;
 
-    printf("Escrevendo o arquivo binario de indice...\n");
+    FILE *arqBin;
+
+    arqBin = fopen("indice_chave2.bin", "wb");
+
+    if (arqBin == NULL){
+        printf ("Falha ao abrir o arquivo de Binario Texto\n");
+        return 0;
+    }
+
+
+    printf("Escrevendo o arquivo binario de indice 2...\n");
 
     int cont = 0;
 
-     while (!feof(arqBin))
-    {
-        fread(&dado, sizeof(DADOS),1, arqBin);
-
-        indices[cont].endereco = cont;
+    while (fscanf(arqText,"%d,%[^,],%[^,],%[^,],%[^,],%[^,],%f,%f,%f\n",&idRegistro,idAlfaNumerico,country,city,accentCity,region,&population,&latitude,&longitude) != EOF){
+        
+        strcpy(indice.chave,idAlfaNumerico);
+        indice.endereco = cont;
         cont++;
+
+        fwrite(&indice,sizeof(IND2),1,arqBin);
     }
 
-    printf("Finalizando a escrita dos indices chave 2...\n");
+    printf("Finalizado a escrita dos indices chave 2... \n");
 
     fclose(arqBin);
-    fclose(arqIndice);
+    fclose(arqText);
 
     return 1;
 }
 
+void buscarIndiceChave2(char chave[]){
+    FILE *arqBin;
+    IND2 indice;
+
+    arqBin = fopen("indice_chave2.bin", "rb");
+
+    if (arqBin == NULL){
+        printf ("Falha ao abrir o arquivo de Binario de indices \n");
+        return 0;
+    }
+
+    int inicio = 0;
+    int meio = 0;
+    long fim = (tamanhoArquivo(arqBin)/sizeof(IND2))-1;
+    int retorno;
+
+    while(inicio <= fim){
+        meio = (inicio + fim)/2;
+        fseek(arqBin,meio * sizeof(indice), SEEK_SET);
+
+        fread(&indice,sizeof(indice),1,arqBin);
+
+        if (strcmp(chave,indice.chave) > 0){
+            printf("%s == %s?\n",chave,indice.chave);
+            inicio = meio+1;
+        }else{
+            if (strcmp(chave,indice.chave) < 0){
+                printf("%s == %s?\n",chave,indice.chave);
+                fim = meio - 1;
+            }else{
+                printf("%s == %s?\n",chave,indice.chave);
+                retorno = 1;
+                break;
+            }
+        }
+    }
+
+    fclose(arqBin);
+
+    if (retorno == 1){
+        
+        DADOS dado;
+
+        arqBin = fopen("dadosBinario.bin", "rb");
+
+        printf("Indice econtrado\n");
+
+        if (arqBin == NULL){
+            printf ("Falha ao abrir o arquivo de dados binario\n");
+            return 0;
+        }
+
+        fseek(arqBin,indice.endereco * sizeof(DADOS), SEEK_SET);
+
+        fread(&dado,sizeof(DADOS),1,arqBin);
+
+        printarNaTelaDados(dado);
+
+        fclose(arqBin);
+
+    }else{
+        printf("Indice nao econtrado\n");
+    }
+}
+
 /*
     Header do arquivo de Dados: Id,Country,City,AccentCity,Region,Population,Latitude,Longitude
-    Chave 1: Id
-    Chave 2: 
+    Chave 1: id
+    Chave 2: idAlfaNumerico
     Chave 3:
     Chave 4:
 */
@@ -382,7 +469,8 @@ void opcoesInterface(){
     printf("3.Pesquisar id do registro via Pesquisa Binaria\n");
     printf("4.Criar arquivo de indice(chave 1) na memoria\n");
     printf("5.Pesquisar id do registro via Pesquisa Binaria na Chave 1\n");
-    printf("6. Criar arquivo de indice(chave 2) na memoria\n");
+    printf("6.Criar arquivo de indice(chave 2) na memoria\n");
+    printf("7.Pesquisar id do registro via Pesquisa Binaria na Chave 2\n");
     printf("--------------------------------------------------\n");
 }
 
@@ -390,6 +478,7 @@ void main(){
 
     int option;
     int chavePesquisa;
+    char chavePesquisa2[5];
     DADOS retornoPesquisaBinaria;
 
     opcoesInterface();
@@ -439,6 +528,16 @@ void main(){
         }else{
             printf("Arquivo de indice(chave 2) já criado\n");
         } 
+        break;
+        case 7:
+        if (verificarArquivoExiste("indice_chave2.bin") == 0){
+            printf("Arquivo de indice 2 nao encontrado. Para buscar, crie-o\n");
+         }else{
+            printf("Digite a chave para pesquisar no indice 2 (formato AAAA):\n");
+            scanf("%s",&chavePesquisa2);
+            parseMaiusculo(chavePesquisa2);
+            buscarIndiceChave2(chavePesquisa2);
+         }
         break;
         default:
             printf("Opcao nao encontrada, tente novamente ...\n");
