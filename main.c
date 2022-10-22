@@ -31,6 +31,16 @@ struct indice_chave2{
 };
 typedef struct indice_chave2 IND2;
 
+struct indice_chave3{
+    char country[4];
+    int enderecoInicial;
+    struct indice_chave3 *prox;
+};
+typedef struct indice_chave3 IND3;
+
+// Auxilia saber se já existe uma lista encadeada para o indice 
+IND3 *inicio;
+
 int verificarArquivoExiste (char filename[]){
     struct stat buffer;
     int exist = stat(filename,&buffer);
@@ -57,6 +67,14 @@ void parseMaiusculo(char string[]){
     int i = 0;
     while(string[i] != '\0'){
         string[i] = toupper(string[i]);
+        i++;
+    }
+}
+
+void parseMinusculo (char string[]){
+    int i = 0;
+    while(string[i] != '\0'){
+        string[i] = tolower(string[i]);
         i++;
     }
 }
@@ -452,12 +470,135 @@ void buscarIndiceChave2(char chave[]){
     }
 }
 
+void inserirIndice(char country[], int endereco)
+{
+   // printf("C: %d\n",endereco);
+    IND3 *novo, *aux=inicio;
+    novo = (IND3*) malloc(sizeof(IND3));
+    strcpy(novo->country,country);
+    novo->enderecoInicial = endereco;
+    novo->prox = NULL;
+
+    if (inicio == NULL)
+    {
+        inicio=novo;
+    }
+    else
+    {
+        while (aux->prox != NULL)
+            aux = aux->prox;
+        aux->prox = novo;
+    }
+
+}
+
+void criarIndice3NaMemoria(){
+
+    FILE *arqBin;
+    DADOS linha;
+    char ultimoCountry[4];
+    int cont = 1;
+
+    arqBin = fopen("dadosBinario.bin", "rb");
+
+    if (arqBin == NULL){
+        printf ("Falha ao abrir o arquivo de Binario de dados \n");
+        return 0;
+    }
+
+    printf("Criando lista de indices da chave 3 na memoria ...\n");
+
+    while(!feof(arqBin)){
+        fread(&linha,sizeof(DADOS),1,arqBin);
+
+        if (strcmp(linha.country,ultimoCountry) != 0){
+            strcpy(ultimoCountry,linha.country);
+
+            inserirIndice(linha.country,cont);
+        }
+
+        cont++;
+        
+    }
+
+    fclose(arqBin);
+
+    printf("Finalizando...\n");
+
+}
+
+//Função para teste da lista encadeada
 /*
-    Header do arquivo de Dados: Id,Country,City,AccentCity,Region,Population,Latitude,Longitude
-    Chave 1: id
-    Chave 2: idAlfaNumerico
-    Chave 3:
-    Chave 4:
+    void percorreListaIndice3(){
+    IND3 *aux=inicio;
+
+    while (aux != NULL)
+    {
+        printf ("UF:%s\n", aux->country);
+        printf ("EI:%d\n", aux->enderecoInicial);
+        aux=aux->prox;
+    }
+    printf("\n");
+}
+*/
+
+void buscarIndiceChave3(char chave[]){
+
+    IND3 *aux=inicio;
+    int achou = 0;
+
+    while (aux != NULL)
+    {
+        if (strcmp(chave,aux->country) == 0){
+            achou = 1;
+            break;
+        }
+        aux=aux->prox;
+    }
+    if (achou == 1){
+
+        FILE *arqBin;
+        DADOS dado;
+
+        arqBin = fopen("dadosBinario.bin", "rb");
+
+        printf("Indice econtrado\n");
+
+        if (arqBin == NULL){
+            printf ("Falha ao abrir o arquivo de dados binario\n");
+            return 0;
+        }
+
+        fseek(arqBin,aux->enderecoInicial * sizeof(DADOS), SEEK_SET);
+
+        fread(&dado,sizeof(DADOS),1,arqBin);
+
+        while(strcmp(chave,dado.country) == 0){
+
+            printarNaTelaDados(dado);
+            printf("-------------------------------\n");
+            fread(&dado,sizeof(DADOS),1,arqBin);
+        }
+
+        fclose(arqBin);
+    }
+
+}
+
+
+
+/*
+    Header do arquivo de Dados: Id,IdAlfaNumerico,Country,City,AccentCity,Region,Population,Latitude,Longitude
+    *Indices em arquivos
+    {
+        Chave 1: id
+        Chave 2: idAlfaNumerico
+    }
+    *Indices em memoria
+    {
+        Chave 3: country
+        Chave 4:
+    }
 */
 
 void opcoesInterface(){
@@ -467,10 +608,12 @@ void opcoesInterface(){
     printf("1.Ler exaustivamente o arquivo de dados\n");
     printf("2.Criar arquivo binario de dados para fazer as consultas e criacoes\n");
     printf("3.Pesquisar id do registro via Pesquisa Binaria\n");
-    printf("4.Criar arquivo de indice(chave 1) na memoria\n");
+    printf("4.Criar arquivo de indice(chave 1)\n");
     printf("5.Pesquisar id do registro via Pesquisa Binaria na Chave 1\n");
-    printf("6.Criar arquivo de indice(chave 2) na memoria\n");
+    printf("6.Criar arquivo de indice(chave 2)\n");
     printf("7.Pesquisar id do registro via Pesquisa Binaria na Chave 2\n");
+    printf("8.Criar indice em memoria (chave 3)\n");
+    printf("9.Pesquisar indice (chave 3) na memoria\n");
     printf("--------------------------------------------------\n");
 }
 
@@ -480,6 +623,8 @@ void main(){
     int chavePesquisa;
     char chavePesquisa2[5];
     DADOS retornoPesquisaBinaria;
+
+    inicio = NULL;
 
     opcoesInterface();
     scanf("%d",&option);
@@ -538,6 +683,23 @@ void main(){
             parseMaiusculo(chavePesquisa2);
             buscarIndiceChave2(chavePesquisa2);
          }
+        break;
+        case 8:
+        if (inicio == NULL){
+            criarIndice3NaMemoria();
+        }else{
+            printf("Indice (chave 3) ja criado na memoria\n");
+        }
+        break;
+        case 9:
+        if (inicio == NULL){
+            printf("Lista de indices para a chave 3 não encontrada. Para buscar, crie-a\n");
+        }else{
+            printf("Digite o pais para buscar os registros (formato aa):\n");
+            scanf("%s",&chavePesquisa2);
+            parseMinusculo(chavePesquisa2);
+            buscarIndiceChave3(chavePesquisa2);
+        }
         break;
         default:
             printf("Opcao nao encontrada, tente novamente ...\n");
