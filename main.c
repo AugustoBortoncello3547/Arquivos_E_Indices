@@ -813,7 +813,7 @@ void buscarIndiceChave4(float chave){
     *Indices em memoria
     {
         Chave 3: country
-        Chave 4:
+        Chave 4: population
     }
 */
 
@@ -875,7 +875,7 @@ void main(){
     char chavePesquisa2[5];
     float chavePesquisa3;
     DADOS retornoPesquisaBinaria;
-                char letra[1];
+    char letra[1];
 
     inicio = NULL;
 
