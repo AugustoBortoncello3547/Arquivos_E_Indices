@@ -557,6 +557,7 @@ void buscarIndiceChave3(char chave[]){
 
     IND3 *aux=inicio;
     int achou = 0;
+    int contadorCidades = 1;
 
     while (aux != NULL)
     {
@@ -589,7 +590,10 @@ void buscarIndiceChave3(char chave[]){
             printarNaTelaDados(dado);
             printf("-------------------------------\n");
             fread(&dado,sizeof(DADOS),1,arqBin);
+            contadorCidades++;
         }
+
+        printf("Qtde cidades: %d\n", contadorCidades);
 
         fclose(arqBin);
     }
@@ -813,6 +817,37 @@ void buscarIndiceChave4(float chave){
     }
 */
 
+void cidadesIniciamLetra (char letra[1]) {
+
+    FILE *arqText;
+    char linha[200];
+
+    int idRegistro;
+    char idAlfaNumerico[5];
+    char country[4];
+    char city[25];
+    char accentCity[25];
+    char region[4];
+    float population;
+    float latitude;
+    float longitude;
+
+    arqText = fopen("data.csv","rt");
+    if (arqText == NULL){
+        printf ("Falha ao abrir o arquivo de dados Texto\n");
+        return 0;
+    }
+
+    while (fscanf(arqText,"%d,%[^,],%[^,],%[^,],%[^,],%[^,],%f,%f,%f\n",&idRegistro,idAlfaNumerico,country,city,accentCity,region,&population,&latitude,&longitude) != EOF){
+        if(letra[0] == city[0]){
+            printf("%s\n", city);
+        }
+    }
+
+    fclose(arqText);
+
+}
+
 void opcoesInterface(){
     printf("--------------------------------------------------\n");
     printf("Digite a opcao desejada: \n");
@@ -828,8 +863,10 @@ void opcoesInterface(){
     printf("9.Pesquisar indice (chave 3) na memoria\n");
     printf("10.Criar indice em memoria (chave 4)\n");
     printf("11.Pesquisar indice (chave 4) na memoria\n");
+    printf("12.Cidades que começam com X letra\n");
     printf("--------------------------------------------------\n");
 }
+
 
 void main(){
 
@@ -838,6 +875,7 @@ void main(){
     char chavePesquisa2[5];
     float chavePesquisa3;
     DADOS retornoPesquisaBinaria;
+                char letra[1];
 
     inicio = NULL;
 
@@ -932,6 +970,11 @@ void main(){
 
             buscarIndiceChave4(chavePesquisa3);
         }
+        break;
+        case 12:
+            printf ("\nDigite a letra: \n");
+            scanf ("%s",letra);
+            cidadesIniciamLetra(letra);
         break;
         default:
             printf("Opcao nao encontrada, tente novamente ...\n");
