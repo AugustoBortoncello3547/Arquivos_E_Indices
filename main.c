@@ -38,8 +38,19 @@ struct indice_chave3{
 };
 typedef struct indice_chave3 IND3;
 
-// Auxilia saber se já existe uma lista encadeada para o indice 
+// Auxilia saber se já existe uma lista encadeada para o indice
 IND3 *inicio;
+
+struct indice_chave4{
+    float key;
+    int enderecoInicial;
+    struct indice_chave4 *left;
+    struct indice_chave4 *right;
+    int height;
+};
+typedef struct indice_chave4 IND4;
+
+IND4 *inicio4 = NULL;;
 
 int verificarArquivoExiste (char filename[]){
     struct stat buffer;
@@ -270,7 +281,7 @@ void criarIndiceChave1(){
     int cont = 0;
 
     while (fscanf(arqText,"%d,%[^,],%[^,],%[^,],%[^,],%[^,],%f,%f,%f\n",&idRegistro,idAlfaNumerico,country,city,accentCity,region,&population,&latitude,&longitude) != EOF){
-        
+
         indice.chave = idRegistro;
         indice.endereco = cont;
         cont++;
@@ -327,7 +338,7 @@ void buscarIndiceChave1(int chave){
     fclose(arqBin);
 
     if (retorno == 1){
-        
+
         DADOS dado;
 
         arqBin = fopen("dadosBinario.bin", "rb");
@@ -389,7 +400,7 @@ void criarIndiceChave2(){
     int cont = 0;
 
     while (fscanf(arqText,"%d,%[^,],%[^,],%[^,],%[^,],%[^,],%f,%f,%f\n",&idRegistro,idAlfaNumerico,country,city,accentCity,region,&population,&latitude,&longitude) != EOF){
-        
+
         strcpy(indice.chave,idAlfaNumerico);
         indice.endereco = cont;
         cont++;
@@ -445,7 +456,7 @@ void buscarIndiceChave2(char chave[]){
     fclose(arqBin);
 
     if (retorno == 1){
-        
+
         DADOS dado;
 
         arqBin = fopen("dadosBinario.bin", "rb");
@@ -518,7 +529,7 @@ void criarIndice3NaMemoria(){
         }
 
         cont++;
-        
+
     }
 
     fclose(arqBin);
@@ -585,6 +596,207 @@ void buscarIndiceChave3(char chave[]){
 
 }
 
+int max(int a, int b)
+{
+    return (a > b)? a : b;
+}
+
+int height(IND4 *N)
+{
+    if (N == NULL)
+        return 0;
+    return 1+max(height(N->left), height(N->right));
+}
+
+IND4* newNode(float key, int cont)
+{
+    IND4* node = (IND4*) malloc(sizeof(IND4));
+    node->key   = key;
+    node->enderecoInicial = cont;
+    node->left   = NULL;
+    node->right  = NULL;
+    node->height = 0;  // new node is initially added at leaf
+    return(node);
+}
+
+IND4 *rightRotate(IND4 *y)
+{
+    IND4 *x = y->left;
+    IND4 *T2 = x->right;
+
+    x->right = y;
+    y->left = T2;
+
+    // Atualizar alturas
+    y->height = height(y);
+    x->height = height(x);
+
+    return x;
+}
+
+// Rotacao Esquerda
+IND4 *leftRotate(IND4 *x)
+{
+    IND4 *y = x->right;
+    IND4 *T2 = y->left;
+
+    y->left = x;
+    x->right = T2;
+
+    // Atualizar alturas
+    x->height = height(x);
+    y->height = height(y);
+
+    return y;
+}
+
+// Calcular valor para balancear
+int getBalance(IND4 *N)
+{
+    if (N == NULL)
+        return 0;
+    return height(N->left) - height(N->right);
+}
+
+// Inserir
+IND4* criarNodoIndice4(IND4* node, float key, int cont)
+{
+    /* 1.  Perform the normal BST insertion */
+    if (node == NULL){
+        return(newNode(key, cont));
+    }
+
+
+    if (key < node->key)
+        node->left  = criarNodoIndice4(node->left, key, cont);
+    else if (key > node->key)
+        node->right = criarNodoIndice4(node->right, key, cont);
+    else // Equal keys are not allowed in BST
+        return node;
+
+    /* 2. Update height of this ancestor node */
+    node->height = height(node);
+
+    /* 3. Get the balance factor of this ancestor
+          node to check whether this node became
+          unbalanced */
+    int balance = getBalance(node);
+
+    // If this node becomes unbalanced, then
+    // there are 4 cases
+
+    // Left Left Case
+    if (balance > 1 && key < node->left->key)
+        return rightRotate(node);
+
+    // Right Right Case
+    if (balance < -1 && key > node->right->key)
+        return leftRotate(node);
+
+    // Left Right Case
+    if (balance > 1 && key > node->left->key)
+    {
+        node->left =  leftRotate(node->left);
+        return rightRotate(node);
+    }
+
+    // Right Left Case
+    if (balance < -1 && key < node->right->key)
+    {
+        node->right = rightRotate(node->right);
+        return leftRotate(node);
+    }
+
+
+
+    /* return the (unchanged) node pointer */
+    return node;
+}
+
+   /*
+void preOrder(IND4 *root)
+{
+    if(root != NULL)
+    {
+        printf("%f\n", root->key);
+        preOrder(root->left);
+        preOrder(root->right);
+    }
+}
+*/
+
+void criarIndice4NaMemoria(){
+
+    FILE *arqBin;
+    DADOS linha;
+    int cont = 0;
+
+    arqBin = fopen("dadosBinario.bin", "rb");
+
+    if (arqBin == NULL){
+        printf ("Falha ao abrir o arquivo de Binario de dados \n");
+        return 0;
+    }
+
+    printf("Criando lista de indices da chave 4 na memoria ...\n");
+
+    while(!feof(arqBin) && cont < 10000){
+        fread(&linha,sizeof(DADOS),1,arqBin);
+        inicio4 = criarNodoIndice4(inicio4, linha.population, cont);
+
+        cont++;
+    }
+
+
+    fclose(arqBin);
+
+    //preOrder(inicio4);
+
+    printf("Finalizando...\n");
+
+}
+
+void buscarIndiceChave4(float chave){
+
+    IND4 *aux=inicio4;
+    int achou = 0;
+
+    while (aux != NULL)
+    {
+        if (chave == aux->key){
+            achou = 1;
+            break;
+        }else if(chave > aux->key){
+            aux = aux->right;
+        }else {
+             aux = aux->left;
+        }
+    }
+
+    if (achou == 1){
+
+        FILE *arqBin;
+        DADOS dado;
+
+        arqBin = fopen("dadosBinario.bin", "rb");
+
+        printf("Indice econtrado\n");
+
+        if (arqBin == NULL){
+            printf ("Falha ao abrir o arquivo de dados binario\n");
+            return 0;
+        }
+
+        fseek(arqBin,aux->enderecoInicial * sizeof(DADOS), SEEK_SET);
+
+        fread(&dado,sizeof(DADOS),1,arqBin);
+        printarNaTelaDados(dado);
+
+        fclose(arqBin);
+    }
+
+}
+
 
 
 /*
@@ -614,6 +826,8 @@ void opcoesInterface(){
     printf("7.Pesquisar id do registro via Pesquisa Binaria na Chave 2\n");
     printf("8.Criar indice em memoria (chave 3)\n");
     printf("9.Pesquisar indice (chave 3) na memoria\n");
+    printf("10.Criar indice em memoria (chave 4)\n");
+    printf("11.Pesquisar indice (chave 4) na memoria\n");
     printf("--------------------------------------------------\n");
 }
 
@@ -622,6 +836,7 @@ void main(){
     int option;
     int chavePesquisa;
     char chavePesquisa2[5];
+    float chavePesquisa3;
     DADOS retornoPesquisaBinaria;
 
     inicio = NULL;
@@ -656,7 +871,7 @@ void main(){
             criarIndiceChave1();
         }else{
             printf("Arquivo de indice(chave 1) já criado\n");
-        } 
+        }
         break;
         case 5:
         if (verificarArquivoExiste("indice_chave1.bin") == 0){
@@ -672,7 +887,7 @@ void main(){
             criarIndiceChave2();
         }else{
             printf("Arquivo de indice(chave 2) já criado\n");
-        } 
+        }
         break;
         case 7:
         if (verificarArquivoExiste("indice_chave2.bin") == 0){
@@ -699,6 +914,23 @@ void main(){
             scanf("%s",&chavePesquisa2);
             parseMinusculo(chavePesquisa2);
             buscarIndiceChave3(chavePesquisa2);
+        }
+        break;
+        case 10:
+        if (inicio4 == NULL){
+            criarIndice4NaMemoria();
+        }else{
+            printf("Indice (chave 4) ja criado na memoria\n");
+        }
+        break;
+        case 11:
+        if (inicio4 == NULL){
+            printf("Lista de indices para a chave 4 não encontrada. Para buscar, crie-a\n");
+        }else{
+            printf("Digite o numero:\n");
+            scanf("%f",&chavePesquisa3);
+
+            buscarIndiceChave4(chavePesquisa3);
         }
         break;
         default:
