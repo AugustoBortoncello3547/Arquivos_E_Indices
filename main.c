@@ -50,7 +50,7 @@ struct indice_chave4{
 };
 typedef struct indice_chave4 IND4;
 
-IND4 *inicio4 = NULL;;
+IND4 *inicio4;
 
 int verificarArquivoExiste (char filename[]){
     struct stat buffer;
@@ -538,9 +538,23 @@ void criarIndice3NaMemoria(){
 
 }
 
+void printarTodospaises(){
+    IND3 *aux=inicio;
+    int cont = 0;
+
+    while (aux != NULL)
+    {
+        printf ("UF:%s\n", aux->country);
+        aux=aux->prox;
+        cont++;
+    }
+    printf("Total de paises no dataset: %d",cont);
+    printf("\n");
+}
+
 //Função para teste da lista encadeada
 /*
-    void percorreListaIndice3(){
+void percorreListaIndice3(){
     IND3 *aux=inicio;
 
     while (aux != NULL)
@@ -553,7 +567,7 @@ void criarIndice3NaMemoria(){
 }
 */
 
-void buscarIndiceChave3(char chave[]){
+void buscarIndiceChave3(char chave[], int contar){
 
     IND3 *aux=inicio;
     int achou = 0;
@@ -593,9 +607,13 @@ void buscarIndiceChave3(char chave[]){
             contadorCidades++;
         }
 
-        printf("Qtde cidades: %d\n", contadorCidades);
+        if (contar == 1){
+            printf("Qtde cidades: %d\n", contadorCidades);
+        }
 
         fclose(arqBin);
+    }else{
+        printf("Pais nao encontrado.\n");
     }
 
 }
@@ -817,34 +835,30 @@ void buscarIndiceChave4(float chave){
     }
 */
 
-void cidadesIniciamLetra (char letra[1]) {
+void cidadesIniciaLetra (char letra[1]) {
 
-    FILE *arqText;
-    char linha[200];
+    FILE *arqBin;
+    DADOS linha;
 
-    int idRegistro;
-    char idAlfaNumerico[5];
-    char country[4];
-    char city[25];
-    char accentCity[25];
-    char region[4];
-    float population;
-    float latitude;
-    float longitude;
+    arqBin = fopen("dadosBinario.bin", "rb");
 
-    arqText = fopen("data.csv","rt");
-    if (arqText == NULL){
-        printf ("Falha ao abrir o arquivo de dados Texto\n");
+    if (arqBin == NULL){
+        printf ("Falha ao abrir o arquivo de Binario de dados \n");
         return 0;
     }
 
-    while (fscanf(arqText,"%d,%[^,],%[^,],%[^,],%[^,],%[^,],%f,%f,%f\n",&idRegistro,idAlfaNumerico,country,city,accentCity,region,&population,&latitude,&longitude) != EOF){
-        if(letra[0] == city[0]){
-            printf("%s\n", city);
+    while(!feof(arqBin)){
+        fread(&linha,sizeof(DADOS),1,arqBin);
+        if (linha.city[0] == letra[0]){
+            printf("%s\n", linha.city);
         }
     }
 
-    fclose(arqText);
+    fclose(arqBin);
+
+}
+
+void contarListarCidadesDoPais(char country[]){
 
 }
 
@@ -863,7 +877,9 @@ void opcoesInterface(){
     printf("9.Pesquisar indice (chave 3) na memoria\n");
     printf("10.Criar indice em memoria (chave 4)\n");
     printf("11.Pesquisar indice (chave 4) na memoria\n");
-    printf("12.Cidades que começam com X letra\n");
+    printf("12.Cidades que comecam com X letra\n");
+    printf("13.Listar e contar as cidades de um pais\n");
+    printf("14.Listar todos os paises no dataset\n");
     printf("--------------------------------------------------\n");
 }
 
@@ -874,10 +890,12 @@ void main(){
     int chavePesquisa;
     char chavePesquisa2[5];
     float chavePesquisa3;
+    char countrySearch[4];
     DADOS retornoPesquisaBinaria;
     char letra[1];
 
     inicio = NULL;
+    inicio4 = NULL;
 
     opcoesInterface();
     scanf("%d",&option);
@@ -946,12 +964,12 @@ void main(){
         break;
         case 9:
         if (inicio == NULL){
-            printf("Lista de indices para a chave 3 não encontrada. Para buscar, crie-a\n");
+            printf("Lista de indices para a chave 3 nao encontrada. Para buscar, crie-a\n");
         }else{
             printf("Digite o pais para buscar os registros (formato aa):\n");
             scanf("%s",&chavePesquisa2);
             parseMinusculo(chavePesquisa2);
-            buscarIndiceChave3(chavePesquisa2);
+            buscarIndiceChave3(chavePesquisa2, 0);
         }
         break;
         case 10:
@@ -963,7 +981,7 @@ void main(){
         break;
         case 11:
         if (inicio4 == NULL){
-            printf("Lista de indices para a chave 4 não encontrada. Para buscar, crie-a\n");
+            printf("Lista de indices para a chave 4 nao encontrada. Para buscar, crie-a\n");
         }else{
             printf("Digite o numero:\n");
             scanf("%f",&chavePesquisa3);
@@ -974,7 +992,24 @@ void main(){
         case 12:
             printf ("\nDigite a letra: \n");
             scanf ("%s",letra);
-            cidadesIniciamLetra(letra);
+            cidadesIniciaLetra(letra);
+        break;
+        case 13:
+            if (inicio == NULL){
+                printf("Para pesquisar essas informacoes, crie o indice 3, ira auxiliar muito a pesquisa.\n");
+            }else{
+                printf("Digite o nome do pais para verificar as cidades:\n");
+                scanf("%s",countrySearch);
+                parseMinusculo(countrySearch);
+                buscarIndiceChave3(countrySearch, 1);
+            }
+        break;
+        case 14:
+            if (inicio == NULL){
+                printf("Para pesquisar essa informacao, crie o indice 3, ira auxiliar muito a pesquisa.\n");
+            }else{
+                printarTodospaises();
+            }
         break;
         default:
             printf("Opcao nao encontrada, tente novamente ...\n");
