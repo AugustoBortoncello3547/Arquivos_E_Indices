@@ -2,13 +2,32 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include<sys/stat.h>
+#include<math.h>
+#include<string.h>
+
+void encryptDecrypt(char inpString[])
+{
+	// Define XOR key
+	// Any character value will work
+	char xorKey = 'K';
+
+	// calculate length of input string
+	int len = strlen(inpString);
+
+	// perform XOR operation of key
+	// with every caracter in string
+	for (int i = 0; i < len; i++)
+	{
+		inpString[i] = inpString[i] ^ xorKey;
+	}
+}
 
 struct dados{
     int idRegistro;
     char idAlfaNumerico[5];
     char country[4];
-    char city[25];
-    char accentCity[25];
+    char city[80];
+    char accentCity[80];
     char region[4];
     float population;
     float latitude;
@@ -114,8 +133,8 @@ void CriarArquivoBinarioDados(){
     int idRegistro;
     char idAlfaNumerico[5];
     char country[4];
-    char city[25];
-    char accentCity[25];
+    char city[80];
+    char accentCity[80];
     char region[4];
     float population;
     float latitude;
@@ -259,8 +278,8 @@ void criarIndiceChave1(){
     int idRegistro;
     char idAlfaNumerico[5];
     char country[4];
-    char city[25];
-    char accentCity[25];
+    char city[80];
+    char accentCity[80];
     char region[4];
     float population;
     float latitude;
@@ -378,8 +397,8 @@ void criarIndiceChave2(){
     int idRegistro;
     char idAlfaNumerico[5];
     char country[4];
-    char city[25];
-    char accentCity[25];
+    char city[80];
+    char accentCity[80];
     char region[4];
     float population;
     float latitude;
@@ -858,8 +877,97 @@ void cidadesIniciaLetra (char letra[1]) {
 
 }
 
-void contarListarCidadesDoPais(char country[]){
+// Link do projeto com a criptografia escolhida: https://github.com/The-Cryptography/C/tree/master/ciphers
 
+void gerarArquivoParaMongoCriptografado(){
+    FILE *arqBin;
+    FILE *arqTextoCriptografado;
+
+    printf("Encriptando seu arquivo. Aguarde uns minutos ... \n");
+
+    arqBin = fopen("dadosBinario.bin", "rb");
+    if (arqBin == NULL){
+        printf ("Falha ao abrir o arquivo Binario de dados\n");
+        return 0;
+    }
+
+    arqTextoCriptografado = fopen("dados_mongo_criptografado.csv", "wt");
+    if (arqTextoCriptografado == NULL){
+        printf ("Falha ao abrir o arquivo de dados criptografado\n");
+        return 0;
+    }
+
+    DADOS linha;
+    char stringParaCriptografar[10];
+
+    // Não colocamos o cabeçalho pois quebrava a leitura para a descriptografia
+    //fprintf(arqTextoCriptografado, "Id,IdAlfaNumerico,Country,City,AccentCity,Region,Population,Latitude,Longitude,idAlfaNumerico\n");
+
+    while(!feof(arqBin)){
+
+        fread(&linha,sizeof(DADOS),1,arqBin);
+
+        parseMinusculo(linha.idAlfaNumerico);
+        strcpy(stringParaCriptografar,linha.idAlfaNumerico);
+        encryptDecrypt(stringParaCriptografar);
+        parseMaiusculo(linha.idAlfaNumerico);
+
+        fprintf(arqTextoCriptografado, "%d,%s,%s,%s,%s,%s,%f,%f,%f,%s\n", linha.idRegistro, linha.idAlfaNumerico, linha.country, linha.city, linha.accentCity, linha.region, linha.population, linha.latitude, linha.longitude, stringParaCriptografar);
+
+    }
+
+    printf("Criptografia finalizada com sucesso!\n");
+
+    fclose(arqBin);
+    fclose(arqTextoCriptografado);
+}
+
+void gerarArquivoParaMongoDescriptografado(){
+
+    FILE *arqTextoDescriptografado;
+    FILE *arqTextoCriptografado;
+
+    printf("Descriptografando seu arquivo. Aguarde uns minutos ... \n");
+
+    arqTextoCriptografado = fopen("dados_mongo_criptografado.csv", "r");
+    if (arqTextoCriptografado == NULL){
+        printf ("Falha ao abrir o arquivo de dados criptografado\n");
+        return 0;
+    }
+
+    arqTextoDescriptografado = fopen("dados_mongo_descriptografado.csv", "wt");
+    if (arqTextoDescriptografado == NULL){
+        printf ("Falha ao abrir o arquivo de dados descriptografado\n");
+        return 0;
+    }
+
+    int idRegistro;
+    char idAlfaNumerico[5];
+    char country[4];
+    char city[80];
+    char accentCity[80];
+    char region[4];
+    float population;
+    float latitude;
+    float longitude;
+
+    char stringParaDescriptografar[10];
+
+    fprintf(arqTextoDescriptografado, "Id,IdAlfaNumerico,Country,City,AccentCity,Region,Population,Latitude,Longitude,idAlfaNumericoDescriptografado\n");
+
+    while (fscanf(arqTextoCriptografado,"%d,%[^,],%[^,],%[^,],%[^,],%[^,],%f,%f,%f,%[^\n]",&idRegistro,idAlfaNumerico,country,city,accentCity,region,&population,&latitude,&longitude, stringParaDescriptografar) != EOF){
+
+        encryptDecrypt(stringParaDescriptografar);
+        //printf("%d %s\n", idRegistro, stringParaDescriptografar);
+        parseMaiusculo(stringParaDescriptografar);
+
+        fprintf(arqTextoDescriptografado, "%d,%s,%s,%s,%s,%s,%f,%f,%f,%s\n", idRegistro, idAlfaNumerico, country, city, accentCity, region, population, latitude, longitude, stringParaDescriptografar);
+    }
+
+    printf("Descriptografia finalizada com sucesso!\n");
+
+    fclose(arqTextoDescriptografado);
+    fclose(arqTextoCriptografado);
 }
 
 void opcoesInterface(){
@@ -880,6 +988,8 @@ void opcoesInterface(){
     printf("12.Cidades que comecam com X letra\n");
     printf("13.Listar e contar as cidades de um pais\n");
     printf("14.Listar todos os paises no dataset\n");
+    printf("15.Criptografar o campo 'idAlfaNumerico'\n");
+    printf("16.Descriptografar o campo 'idAlfaNumerico'\n");
     printf("--------------------------------------------------\n");
 }
 
@@ -1010,6 +1120,20 @@ void main(){
             }else{
                 printarTodospaises();
             }
+        break;
+        case 15:
+        if (verificarArquivoExiste("dadosBinario.bin") == 0){
+            printf("Arquivo de dados binario nao criado, para continuar crio-o\n");
+        }else{
+            gerarArquivoParaMongoCriptografado();
+        }
+        break;
+        case 16:
+        if (verificarArquivoExiste("dados_mongo_criptografado.csv") == 0){
+            printf("Arquivo de dados criptografado nao criado, para continuar crio-o\n");
+        }else{
+            gerarArquivoParaMongoDescriptografado();
+        }
         break;
         default:
             printf("Opcao nao encontrada, tente novamente ...\n");

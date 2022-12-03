@@ -15,3 +15,9 @@ Durante o desenvolvimento do trabalho, pudemos perceber que a maioria das pergun
 *  Quantas cidades tem mais que X habitantes? -> Quantos países o dataset possui?
 
 Para responder a maoria das perguntas utilizamos o índice de chave 3, criado na memória.
+
+#### Segunda parte do trabalho: NoSQL
+
+Para a segunda parte do trabalho, escolhemos o SGBD NoSQL MongoDB e implementamos o método de criptografia chamado cifra de XOR para criptografar o campo "idAlfaNumerico", assim geramos uma nova planilha com uma nova coluna o qual possuia o valor criptografado para cada linha do arquivo de dados original.
+
+O arquivo chamado NoSQL.docx dentro da pasta Descricao possui todos os testes descritos realizados no MongoDB, juntamente com uma explicação do método de criptografia escolhido.
